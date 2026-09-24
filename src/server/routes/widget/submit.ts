@@ -93,6 +93,14 @@ const submitReportSchema = z.object({
         sessionStorage: z.array(z.string()),
       })
       .optional(),
+    currentUser: z
+      .object({
+        name: z.string().optional(),
+        email: z.string().optional(),
+        id: z.string().optional(),
+      })
+      .optional(),
+    customContext: z.record(z.string(), z.string()).optional(),
   }),
   annotations: z.record(z.string(), z.unknown()).optional(),
 });

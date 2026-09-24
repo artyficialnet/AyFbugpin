@@ -60,6 +60,13 @@ export interface WidgetConfig {
   maxScreenshotSize: number;
   maxImageUploadSize: number;
   maxVideoUploadSize: number;
+  // Optional identity of the currently logged-in user (captured into report
+  // metadata). Supplied by the hosting app via init({currentUser}) or script
+  // tag data attributes (data-user-name / data-user-email / data-user-id).
+  currentUser?: { name?: string; email?: string; id?: string };
+  // Optional free-form context the hosting app wants attached to every report
+  // (e.g. {"plan":"pro","session_id":"abc"}). Keys/values are strings.
+  customContext?: Record<string, string>;
 }
 
 export const defaultConfig: WidgetConfig = {

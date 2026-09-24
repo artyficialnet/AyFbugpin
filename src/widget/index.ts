@@ -12,6 +12,7 @@ import {
 import { detectLocale } from './i18n/detect.js';
 import {
   clearUserActivity,
+  setExternalContext,
   startErrorCapture,
   startUserActivityCapture,
   stopUserActivityCapture,
@@ -170,6 +171,10 @@ function createWidget(config: WidgetConfig, languageInputs: InitLanguageInputs =
 
   applyLanguage(config, languageInputs);
 
+  // Inject hosting-app-provided user identity + custom context so it lands in
+  // every captured report's metadata.
+  setExternalContext(config.currentUser, config.customContext);
+
   startErrorCapture({
     consoleCapture: config.enableConsoleCapture,
     networkCapture: config.enableNetworkCapture,
@@ -183,6 +188,24 @@ function createWidget(config: WidgetConfig, languageInputs: InitLanguageInputs =
 
   // Render Preact app
   render(h(App, { config }), root);
+}
+
+/**
+ * Collect arbitrary context from script tag `data-context-<key>=<value>`
+ * attributes into a plain object. Keys are kebab-cased (e.g. `session-id`);
+ * they are kept as-is for simplicity and predictability.
+ */
+function collectDataContext(scriptElement: HTMLScriptElement): Record<string, string> {
+  const out: Record<string, string> = {};
+  if (!scriptElement.attributes) return out;
+  for (let i = 0; i < scriptElement.attributes.length; i += 1) {
+    const attr = scriptElement.attributes[i];
+    if (attr.name.startsWith('data-context-')) {
+      const key = attr.name.slice('data-context-'.length);
+      if (key) out[key] = attr.value;
+    }
+  }
+  return Object.keys(out).length > 0 ? out : {};
 }
 
 /**
@@ -227,6 +250,20 @@ async function initFromScriptTag(scriptElement: HTMLScriptElement): Promise<void
     ...(scriptElement.getAttribute('data-theme') && {
       theme: scriptElement.getAttribute('data-theme') as 'light' | 'dark',
     }),
+    // Hosting app can pass the logged-in user via data attributes.
+    ...(Boolean(
+      scriptElement.getAttribute('data-user-name') ||
+        scriptElement.getAttribute('data-user-email') ||
+        scriptElement.getAttribute('data-user-id')
+    ) && {
+      currentUser: {
+        name: scriptElement.getAttribute('data-user-name') || undefined,
+        email: scriptElement.getAttribute('data-user-email') || undefined,
+        id: scriptElement.getAttribute('data-user-id') || undefined,
+      },
+    }),
+    // Hosting app can attach arbitrary context via data-context-<key>="value".
+    ...(collectDataContext(scriptElement)),
   };
 
   const scriptLanguage = scriptElement.getAttribute('data-language');

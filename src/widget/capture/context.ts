@@ -71,6 +71,8 @@ export interface PageContext {
   networkErrors?: NetworkError[];
   userActivity?: UserActivity[];
   storageKeys?: StorageKeys;
+  currentUser?: { name?: string; email?: string; id?: string };
+  customContext?: Record<string, string>;
 }
 
 // Store diagnostic signals and user activity in separate bounded buffers.
@@ -84,6 +86,23 @@ const MAX_MESSAGE_LENGTH = 2048;
 
 let isDiagnosticCaptureActive = false;
 let userActivityListener: ((event: Event) => void) | null = null;
+
+// Optional identity + custom context injected by the hosting app.
+let externalCurrentUser: { name?: string; email?: string; id?: string } | undefined;
+let externalCustomContext: Record<string, string> | undefined;
+
+/**
+ * Inject the currently-logged-in user's identity and/or custom context so it is
+ * attached to every captured report. Call this from the hosting app (or it is
+ * wired automatically from the widget's init config / script attributes).
+ */
+export function setExternalContext(
+  currentUser?: { name?: string; email?: string; id?: string },
+  customContext?: Record<string, string>
+): void {
+  externalCurrentUser = currentUser;
+  externalCustomContext = customContext;
+}
 
 export interface ErrorCaptureOptions {
   consoleCapture?: boolean;
@@ -556,5 +575,7 @@ export function captureContext(options: CaptureContextOptions = {}): PageContext
         ? [...capturedUserActivity]
         : undefined,
     storageKeys: storageKeysCapture ? getStorageKeys() : undefined,
+    currentUser: externalCurrentUser,
+    customContext: externalCustomContext,
   };
 }

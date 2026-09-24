@@ -81,6 +81,14 @@ export interface ReportMetadata {
   userActivity?: UserActivity[];
   storageKeys?: StorageKeys;
   manualContext?: ManualReportContext;
+  currentUser?: CurrentUserInfo;
+  customContext?: Record<string, string>;
+}
+
+export interface CurrentUserInfo {
+  name?: string;
+  email?: string;
+  id?: string;
 }
 
 export interface ConsoleError {

@@ -92,6 +92,10 @@ export function ReportDetail() {
     'bugpin.report-detail.environment-open',
     true
   );
+  const [userContextOpen, setUserContextOpen] = usePersistedOpenState(
+    'bugpin.report-detail.user-context-open',
+    true
+  );
   const [reporterMessagesOpen, setReporterMessagesOpen] = usePersistedOpenState(
     'bugpin.report-detail.reporter-messages-open',
     true
@@ -275,6 +279,12 @@ export function ReportDetail() {
     report.metadata?.device?.type ||
     report.metadata?.viewport?.width ||
     report.metadata?.viewport?.height
+  );
+  const hasUserContext = Boolean(
+    report.metadata?.currentUser?.name ||
+      report.metadata?.currentUser?.email ||
+      report.metadata?.currentUser?.id ||
+      (report.metadata?.customContext && Object.keys(report.metadata.customContext).length > 0)
   );
 
   const sectionPlain = (section: keyof ExportSectionToggles): string => {
@@ -1108,6 +1118,35 @@ export function ReportDetail() {
             </Collapsible>
           )}
 
+          {/* User & Custom Context */}
+          {hasUserContext && (
+            <Collapsible open={userContextOpen} onOpenChange={setUserContextOpen}>
+              <Card>
+                <CardHeader className="p-0">
+                  <CollapsibleTrigger className="flex w-full items-center justify-between cursor-pointer hover:bg-muted/50 transition-colors p-6 text-left rounded-t-xl">
+                    <CardTitle>User &amp; Context</CardTitle>
+                    <ChevronDown className="h-4 w-4 text-muted-foreground transition-transform duration-200 [[data-state=open]_&]:rotate-180 ml-2" />
+                  </CollapsibleTrigger>
+                </CardHeader>
+                <CollapsibleContent>
+                  <CardContent className="space-y-3 text-sm pt-4">
+                    <InfoRow label="User" value={formatUser(report.metadata?.currentUser)} />
+                    {report.metadata?.currentUser?.id && (
+                      <InfoRow label="User ID" value={report.metadata.currentUser.id} />
+                    )}
+                    {report.metadata?.currentUser?.email && (
+                      <InfoRow label="User Email" value={report.metadata.currentUser.email} isLink />
+                    )}
+                    {report.metadata?.customContext &&
+                      Object.entries(report.metadata.customContext).map(([key, value]) => (
+                        <InfoRow key={key} label={key} value={value} />
+                      ))}
+                  </CardContent>
+                </CollapsibleContent>
+              </Card>
+            </Collapsible>
+          )}
+
           {/* Environment */}
           {hasEnvironment && (
             <Collapsible open={environmentOpen} onOpenChange={setEnvironmentOpen}>
@@ -1494,6 +1533,12 @@ function SourceBadge({ source }: { source?: ReportSource }) {
 function formatEnvironmentValue(...parts: Array<string | undefined>) {
   const value = parts.filter(Boolean).join(' ').trim();
   return value || undefined;
+}
+
+function formatUser(user?: { name?: string; email?: string; id?: string }) {
+  if (!user) return undefined;
+  const value = [user.name, user.email].filter(Boolean).join(' - ').trim();
+  return value || user.id || undefined;
 }
 
 function AssigneeDisplay({
